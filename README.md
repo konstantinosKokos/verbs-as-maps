@@ -1,2 +1,2 @@
 ## verbs-as-maps
-A neural architecture employing transfer learning to learn high-order tensor representations for transitive verbs. 
+A neural architecture written on the Keras functional API, employing transfer learning to estimate high-order tensor representations for transitive verbs.
