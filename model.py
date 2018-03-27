@@ -1,6 +1,7 @@
 from keras.layers import Input, Lambda, Dense, LSTM, Concatenate, Reshape, Dot
 from keras import backend as K
 from keras.models import Model
+from keras.optimizers import Adam
 
 def base_model(num_verbs, sentence_space=50, verbose=False):
     """
@@ -52,7 +53,8 @@ def base_model(num_verbs, sentence_space=50, verbose=False):
                   metrics=['accuracy'])
     return model
 
-def mapping_model(base_model, num_verbs, sentence_space=50, verbose=False):
+def mapping_model(base_model, num_verbs, sentence_space=50, verbose=False, freeze=True, embedding_activation='relu',
+                 lr=0.0005):
     """
     Returns the high level layers responsible for training the verb embeddings
     """
@@ -70,14 +72,14 @@ def mapping_model(base_model, num_verbs, sentence_space=50, verbose=False):
     #### INIT ####
     # ---- Freeze the base model and recompile ---- #
     for layer in base_model.layers:
-        layer.trainable = False
+        layer.trainable = not freeze
     base_model.compile(loss = ['binary_crossentropy', None, None],
                   optimizer='rmsprop',
                   metrics=['accuracy'])
     
     #### MAIN FUNCTIONAL LAYERS ####
     # ---- New layers ---- #
-    embedder = Dense(units=(sentence_space * 300), activation='tanh') # Produces a long vector out of verb signatures
+    embedder = Dense(units=(sentence_space * 300), activation=embedding_activation) # Produces a long vector out of verb signatures
     # ---- Maps to base layers ---- #
     recurrent = base_model.get_layer('recurrent')
     cosine_function = base_model.get_layer('cosine')
@@ -129,11 +131,11 @@ def mapping_model(base_model, num_verbs, sentence_space=50, verbose=False):
     if verbose:
         print('Embedding Network Summary:')
         model.summary()
+    model.add_loss(K.sum(2 - first_comparison - second_comparison)/64)
     model.compile(loss = ['binary_crossentropy'],
-                  optimizer='adam',
+                  optimizer=Adam(lr=lr),
                   metrics=['accuracy', 
                            reconstruction_accuracy_wrapper(first_remap, first_vo),
                            reconstruction_accuracy_wrapper(second_remap, second_vo)])
-    model.add_loss((- first_comparison - second_comparison)/2)
     
     return model
