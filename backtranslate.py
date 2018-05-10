@@ -21,6 +21,6 @@ def chaintranslate(translator, languages, string):
 def backtranslate(translator, languages, string):
     # Return to english
     return translate(translator, chaintranslate(translator, languages, string),
-                    languages[::-1], 'en')tring
+                    languages[-1], 'en')tring
   
 
