@@ -1,0 +1,262 @@
+\documentclass{beamer}
+\usetheme{metropolis}           % Use metropolis theme
+\setsansfont[BoldFont={fira-sans.bold.ttf},ItalicFont={fira-sans.light-italic.ttf}]{fira-sans.light.ttf}
+\setmonofont{fira-mono.regular.ttf}
+
+% PACKAGES %
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pifont}
+
+
+% COLORS %
+\definecolor{Yes}{HTML}{0F771D}
+\definecolor{Maybe}{HTML}{1F549E}
+\definecolor{No}{HTML}{9F1A11}
+
+% SYMBOLS %
+\newcommand{\xmark}{\ding{55}}
+
+\title{Learning High-Order Word Representations}
+\date{June 12, 2018}
+\author{Konstantinos Kogkalidis}
+\institute{Logic \& Language Fan Club}
+
+\metroset{
+titleformat=regular, 
+sectionpage=progressbar, 
+subsectionpage=progressbar, 
+progressbar=frametitle,
+titleformat frame=regular,
+block=fill}
+
+
+\begin{document}
+  \maketitle
+  
+  
+\section{Motivation}
+\begin{frame}{Categorical Compositional Distributional Semantics}
+
+	Idea: structure-preserving map $\mathcal{F}$
+	\[
+	\mathcal{F}: \mathcal{G} \to \pmb{FdVect} 
+	\]
+	
+	\begin{itemize}	
+	\item Atomic types translated to vectors (order-one tensors)
+	\item Complex types translated to (multi-)linear maps (higher order tensors)
+	\end{itemize}
+\end{frame}
+  
+\begin{frame}{Why Compositionality?}
+	\begin{itemize}
+	\item Bridging of formal \& distributional semantics
+	\item Syntax-informed meaning derivations
+	\item Modeling of functional words
+	\item Formal treatment of ambiguous words
+	\item Richer representations
+	\item[] \quad \vdots
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Why Not Compositionality?}
+	\begin{itemize}
+	\item[\textcolor{Yes}{\checkmark}] Great properties
+	\item[\textcolor{Maybe}{\textbf{?}}] How to obtain word representations?
+	\end{itemize}
+	
+	
+	Possible options:
+	\begin{enumerate}
+	\item Co-occurrence statistics 
+	\pause \textcolor{No}{\xmark}
+	\pause
+	\item Unsupervised techniques (\textit{a la word2vec})
+	\pause \textcolor{No}{\xmark}\
+	\pause
+	\item Supervised learning \textcolor{Maybe}{\textbf{?}}
+	\end{enumerate}
+\end{frame}
+
+	
+\section{Supervised Learning}
+
+\begin{frame}{Functional Overview}
+	\begin{itemize}
+	\item Search over set of functions $A \to B$ parameterized over $P$
+	\item Find optimal approximation $\hat{f}_P$ to $f: A \to B$
+	\item Use samples $(a, f(a)) \in A\times B$ to update $P$
+	\end{itemize}	
+\end{frame}
+
+\subsection{Dataset} 
+
+\begin{frame}{Finding Data}
+	Sample space must be:
+	\begin{itemize}
+	\item Labeled
+	\item constrained
+	\item of large size
+	\item of high quality
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Paraphrase Database}
+
+	Raw text paraphrase pairs
+	
+	
+	\begin{block}{Example pair}
+	\small \textit{proposed by the president} $\sim$ \textit{suggested by the chairman}
+	\end{block}
+	
+	\begin{itemize}
+	\item Labeled \textcolor{Yes}{\checkmark}
+	\item constrained \textcolor{No}{\xmark}
+	\footnotesize\textit{(different syntactic types)}
+	\normalsize
+	\item of large size \textcolor{Yes}{\checkmark}
+	\item of high quality \textcolor{Maybe}{\textbf{?}}
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Dataset: Preprocessing}
+
+	\begin{enumerate}
+	\item \textbf{Parse and filter by type}
+	\end{enumerate}
+
+	\begin{itemize}
+	\item Labeled \textcolor{Yes}{\checkmark}
+	\item constrained \textcolor{Yes}{\checkmark}
+	\item of large size \textcolor{No}{\xmark} 
+	\footnotesize\textit{(>95\% loss)} 
+	\normalsize
+	\item of high quality \textcolor{No}{\xmark}
+	\footnotesize\textit{(parser-induced errors)} 
+	\normalsize
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Dataset: Preprocessing}
+
+	\begin{enumerate}
+	\item[2.] \textbf{Back-translation}
+	\end{enumerate}
+
+	\begin{itemize}
+	\item Labeled \textcolor{Yes}{\checkmark}
+	\item constrained \textcolor{Yes}{\checkmark}
+	\item of large size \textcolor{Yes}{\checkmark}
+	\item of high quality \textcolor{No}{\xmark}
+	\footnotesize\textit{(translation-induced errors)}
+	\normalsize
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Dataset: Preprocessing}
+
+	\begin{enumerate}
+	\item[3.] \textbf{Filter by co-occurrence / mutual information}
+	\end{enumerate}
+
+	\begin{itemize}
+	\item Labeled \textcolor{Yes}{\checkmark}
+	\item constrained \textcolor{Yes}{\checkmark}
+	\item of large size \textcolor{Yes}{\checkmark}
+	\item of high quality \textcolor{Maybe}{\textbf{?}}
+	\end{itemize}
+\end{frame}
+    
+\begin{frame}{Dataset: End Product}
+	Verb / object dictionaries:
+	\begin{align*}
+	\mathcal{V}&: \{v_1: 1, v_2: 2, ..., v_N: N\}\\
+	\mathcal{O}&: \{o_1: 1, o_2: 2, ..., o_M: M\}
+	\end{align*}
+	Paraphrase relation: 
+	\begin{align*}
+	\mathcal{P}: \mathbb{N} \times \mathbb{N} \times \mathbb{N} \times \mathbb{N} &\to \{0, 1\} \tag{\alert{binary classification}}\\
+	\mathcal{P}(i,j,k,l) = \mathcal{P}(k,l,i,j)
+	 &= \begin{cases}
+	1 & v_i o_j \sim v_k o_l\\
+	0 & \text{otherwise}\\
+	\end{cases}
+	\end{align*}	
+\end{frame}
+  
+\subsection{Intermediate Representations}
+  \begin{frame}{Objective Function}
+    Our semantic interpretations are:
+  	\begin{itemize}
+  	\item Sentences: $ \lceil s \rceil = \mathbb{R}^{S}$
+  	\item Objects: $ \lceil np \rceil = \mathbb{R}^{NP}$
+  	\item Verbs: $\lceil s / np \rceil = \mathbb{R}^{S\times NP}$
+  	\end{itemize}
+  
+  	And our objective is to learn a \alert{verb embedding function} 
+  	$\varepsilon_{verb}$:
+  	\[
+  	\varepsilon_{verb}: \mathbb{N} \to \mathbb{R}^{S\times NP}
+  	\]
+  	
+  	But instead we have samples from some $f: \mathbb{N}^4 \to \{0,1\}$ 
+  	
+
+  	
+\end{frame}
+
+\begin{frame}{Formulating the network}
+  	\begin{block}{Solution}
+	Formulate $f_P$ to incorporate $\varepsilon_{verb}$.
+	\[
+	f_p = f_1 \circ f_2 \circ \dots \circ \varepsilon_{verb} \circ \dots
+	\] 
+  	\end{block}
+  	 
+  	\pause
+  	\begin{block}{Simplification}
+  	Assume pre-trained \alert{object embedding function} $\varepsilon_{object}$
+  	\[
+  	\varepsilon_{objects}: \mathbb{N} \to \mathbb{R}^{300}
+  	\]
+  	\end{block}
+\end{frame}
+
+\begin{frame}{Filling the missing blocks}
+\begin{figure}
+\begin{tikzpicture}
+	[auto,
+	item/.style = {rectangle, text width = 5em, align=center},
+	function/.style = {->}]
+						
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i \in \mathbb{N}$,
+		  	3/n12/ \small $j \in \mathbb{N}$,
+		  	6/n13/ \small $k \in \mathbb{N}$,
+		  	9/n14/ \small $l \in \mathbb{N}$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+		 
+	\foreach \x/\alph/\name in {
+			0/n21/ \small $i \in \mathbb{R}^{100\times 300}$,
+		  	3/n22/ \small $j \in \mathbb{R}^{300}$,
+		  	6/n23/ \small $k \in \mathbb{R}^{100\times 300}$,
+		  	9/n24/ \small $l \in \mathbb{R}^{300}$
+		 }{
+		 	\draw (\x,-2) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+		 
+	\foreach \source/\target in {n11/n21, n12/n22, n13/n23, n14/n24}
+	{
+		\draw (\source) edge[function] (\target);
+	}
+		 
+		 		
+\end{tikzpicture}
+\end{figure}
+\end{frame}
+
+\end{document}
