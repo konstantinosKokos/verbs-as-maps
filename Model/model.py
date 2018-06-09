@@ -11,7 +11,7 @@ def base_model(num_verbs, sentence_space=50, loss='binary_crossentropy',
     
     #### MAIN FUNCTIONAL LAYERS ####
     recurrent = LSTM(300, return_sequences=False, name='recurrent') # Accepts word sequences and returns sentence embeddings
-    encoder = Dense(sentence_space, activation='tanh', name='encoder') # Compresses LSTM output
+    encoder = Dense(sentence_space, activation='tanh', kernel_regularizer='l2', name='encoder') # Compresses LSTM output
     cosine_function = Lambda(lambda x: 
                          ( 
                              (1 + K.sum( K.l2_normalize(x[:,:sentence_space], axis=-1) * K.l2_normalize(x[:,sentence_space:], axis=-1), axis=-1))/2
@@ -170,7 +170,10 @@ def mapping_model(base_model, num_verbs, sentence_space=50, loss='binary_crossen
     if verbose:
         print('Embedding Network Summary:')
         model.summary()
-    model.add_loss(K.sum(2 - first_comparison - second_comparison)/64)
+
+    additive_loss = K.mean(K.square(first_comparison + second_comparison -2))
+    model.add_loss(additive_loss)
+    
     model.compile(loss = [loss],
                   optimizer=Adam(lr=lr),
                   metrics=['accuracy', 
