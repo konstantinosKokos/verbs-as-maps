@@ -2,12 +2,19 @@
 \usetheme{metropolis}           % Use metropolis theme
 \setsansfont[BoldFont={fira-sans.bold.ttf},ItalicFont={fira-sans.light-italic.ttf}]{fira-sans.light.ttf}
 \setmonofont{fira-mono.regular.ttf}
+\setbeameroption{show notes}
 
 % PACKAGES %
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{pifont}
-
+\usepackage{tikz}
+\usetikzlibrary{calc, trees, fit, positioning}
+\newfontfamily\DejaSans{DejaVu Sans}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{diagbox}
+\usepackage{multirow}
 
 % COLORS %
 \definecolor{Yes}{HTML}{0F771D}
@@ -20,7 +27,7 @@
 \title{Learning High-Order Word Representations}
 \date{June 12, 2018}
 \author{Konstantinos Kogkalidis}
-\institute{Logic \& Language Fan Club}
+\institute{LoLa Fan Club}
 
 \metroset{
 titleformat=regular, 
@@ -35,8 +42,12 @@ block=fill}
   \maketitle
   
   
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame} 
+ 
 \section{Motivation}
-\begin{frame}{Categorical Compositional Distributional Semantics}
+\begin{frame}{DisCoCat}
 
 	Idea: structure-preserving map $\mathcal{F}$
 	\[
@@ -69,20 +80,24 @@ block=fill}
 	
 	Possible options:
 	\begin{enumerate}
+	\pause
 	\item Co-occurrence statistics 
 	\pause \textcolor{No}{\xmark}
-	\pause
 	\item Unsupervised techniques (\textit{a la word2vec})
-	\pause \textcolor{No}{\xmark}\
-	\pause
-	\item Supervised learning \textcolor{Maybe}{\textbf{?}}
+	\pause \textcolor{No}{\xmark}
+	\item Supervised learning
+	\pause \textcolor{Maybe}{\textbf{?}}
 	\end{enumerate}
 \end{frame}
 
+\begin{frame}{Problem Statement}
+\centering
+Examine whether supervised learning can be used to find higher-order word representations (transitive verbs)
+\end{frame}
 	
 \section{Supervised Learning}
 
-\begin{frame}{Functional Overview}
+\begin{frame}{Overview}
 	\begin{itemize}
 	\item Search over set of functions $A \to B$ parameterized over $P$
 	\item Find optimal approximation $\hat{f}_P$ to $f: A \to B$
@@ -124,7 +139,7 @@ block=fill}
 \begin{frame}{Dataset: Preprocessing}
 
 	\begin{enumerate}
-	\item \textbf{Parse and filter by type}
+	\item \textbf{Parse and filter by type} (transitive verb case)
 	\end{enumerate}
 
 	\begin{itemize}
@@ -169,7 +184,7 @@ block=fill}
 	\end{itemize}
 \end{frame}
     
-\begin{frame}{Dataset: End Product}
+\begin{frame}{Dataset: End Result}
 	Verb / object dictionaries:
 	\begin{align*}
 	\mathcal{V}&: \{v_1: 1, v_2: 2, ..., v_N: N\}\\
@@ -190,15 +205,15 @@ block=fill}
   \begin{frame}{Objective Function}
     Our semantic interpretations are:
   	\begin{itemize}
-  	\item Sentences: $ \lceil s \rceil = \mathbb{R}^{S}$
+  	\item Actions: $ \lceil a \rceil = \mathbb{R}^{A}$
   	\item Objects: $ \lceil np \rceil = \mathbb{R}^{NP}$
-  	\item Verbs: $\lceil s / np \rceil = \mathbb{R}^{S\times NP}$
+  	\item Transitive Verbs: $\lceil a / np \rceil = \mathbb{R}^{A\times NP}$
   	\end{itemize}
   
   	And our objective is to learn a \alert{verb embedding function} 
   	$\varepsilon_{verb}$:
   	\[
-  	\varepsilon_{verb}: \mathbb{N} \to \mathbb{R}^{S\times NP}
+  	\varepsilon_{verb}: \mathbb{N} \to \mathbb{R}^{A\times NP}
   	\]
   	
   	But instead we have samples from some $f: \mathbb{N}^4 \to \{0,1\}$ 
@@ -216,10 +231,10 @@ block=fill}
   	\end{block}
   	 
   	\pause
-  	\begin{block}{Simplification}
-  	Assume pre-trained \alert{object embedding function} $\varepsilon_{object}$
+  	\begin{block}{Simplification (1)}
+  	Assume pre-trained \alert{object embedding function} $\varepsilon_{object}$.
   	\[
-  	\varepsilon_{objects}: \mathbb{N} \to \mathbb{R}^{300}
+  	\varepsilon_{object}: \mathbb{N} \to \mathbb{R}^{300}
   	\]
   	\end{block}
 \end{frame}
@@ -228,8 +243,10 @@ block=fill}
 \begin{figure}
 \begin{tikzpicture}
 	[auto,
-	item/.style = {rectangle, text width = 5em, align=center},
-	function/.style = {->}]
+	scale=0.8,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
 						
 	\foreach \x/\alph/\name in {
 			0/n11/ \small $i \in \mathbb{N}$,
@@ -240,23 +257,368 @@ block=fill}
 		 	\draw (\x,0) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
 		 }
 		 
+	\draw (4.5, -9) node[item] (n51) {\textcolor{mDarkTeal}{$\hat{y} \in \mathbb{R}$}};	
+	
+	
+	% object embeddings
+	\pause 
 	\foreach \x/\alph/\name in {
-			0/n21/ \small $i \in \mathbb{R}^{100\times 300}$,
-		  	3/n22/ \small $j \in \mathbb{R}^{300}$,
-		  	6/n23/ \small $k \in \mathbb{R}^{100\times 300}$,
-		  	9/n24/ \small $l \in \mathbb{R}^{300}$
+			3/n22/ \small $\pmb{j} \in \mathbb{R}^{300}$,
+		  	9/n24/ \small $\pmb{l} \in \mathbb{R}^{300}$
 		 }{
-		 	\draw (\x,-2) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+
+		\foreach \source/\target in {n12/n22,n14/n24}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon_{object}$] (\target);
+	}
+
+	% verb embeddings
+	\pause
+	\foreach \x/\alph/\name in {
+			6/n23/ \small $\pmb{\mathcal{K}} \in \mathbb{R}^{100 \times 300}$,			
+			0/n21/ \small $\pmb{\mathcal{I}} \in \mathbb{R}^{100 \times 300}$,		}{
+			\draw (\x, -3) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
 		 }
 		 
-	\foreach \source/\target in {n11/n21, n12/n22, n13/n23, n14/n24}
+	\foreach \source/\target in {n11/n21,n13/n23}
 	{
-		\draw (\source) edge[function] (\target);
+		\draw (\source) edge[function, edge label=$\varepsilon_{verb}$] (\target);
 	}
-		 
-		 		
+	
+	% phrase embeddings
+	\pause
+	\foreach \x/\alph/\name in {
+			1.5/n31/ \small $\pmb{\mathcal I}(\pmb{j}) \in \mathbb{R}^{100}$,
+		  	7.5/n32/ \small $\pmb{\mathcal K}(\pmb{l}) \in \mathbb{R}^{100}$,
+		 }{
+		 	\draw (\x,-6) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+
+	\draw (n22) edge[-, bend right=30] (n21);
+	\draw (n21) edge[->, bend right=20] (n31.north);
+	\draw (n24) edge[-, bend right=30] (n23);
+	\draw (n23) edge[->, bend right=20] (n32.north);	
+	
+	\pause
+	\draw (4.5, -7.5) node[item] (n41) {};
+
+	\draw (n31) edge[known, bend right=20] (n41.center);
+	\draw (n32) edge[known, bend left=20] (n41.center);
+	\draw (n41.center) edge[known,->, near start, edge label= \small $cosine$] (n51);	
 \end{tikzpicture}
 \end{figure}
 \end{frame}
 
+\begin{frame}{Sanity Check}
+\begin{block}{Error Signal}
+\begin{align*}
+cos(\pmb{V}_i(\pmb{j}), \pmb{V}_k(\pmb{l})) \approx \mathcal{P}(i,j,k,l) 
+\quad
+\forall \ (i,j,k,l) \in \mathcal{V} \times \mathcal{O} \times \mathcal{V} \times \mathcal{O}
+\end{align*}
+\end{block}
+
+\pause
+Considerations:
+\begin{enumerate}
+\item Network Size\\
+\begin{itemize}
+\item $1.000$ verbs
+\item $300 \times 100 = 30.000$ parameters per verb
+\item[$\Rightarrow$]  \alert{ $ 30.000.000 $ parameters} for $\varepsilon_{verb}$ to learn
+\end{itemize}
+\pause
+\item Quantifying over \alert{two spaces} ...
+\pause
+\item ... both of which are \alert{non-convex}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[standout]
+\includegraphics[scale=0.25]{beast.jpg}
+
+... A "beast" to train {\DejaSans ☹} 
+\end{frame}
+
+
+\subsection{Transferring Knowledge}
+
+\begin{frame}{Finding an Oracle}
+Dataception: use our labeled dataset to create a new dataset
+
+\pause
+\begin{block}{Simplification (2)}
+Assume another pre-trained \alert{verb embedding function} $\varepsilon '_{verb}$.
+  	\[
+  	\varepsilon '_{verb}: \mathbb{N} \to \mathbb{R}^{300}
+  	\]
+\end{block}
+
+\pause
+\begin{block}{Oracle}
+We can now use a \alert{paraphrase embedding function} $\varepsilon_{par}$.
+	\[
+	\varepsilon_{par}: \mathbb{R}^{300} \times \mathbb{R}^{300} \to \mathbb{R}^{100}
+	\]
+\end{block}
+\end{frame}
+
+\begin{frame}{Oracle Flow}
+\begin{figure}
+\begin{tikzpicture}
+	[auto,
+	scale=0.8,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
+	
+	% I/O					
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i \in \mathbb{N}$,
+		  	3/n12/ \small $j \in \mathbb{N}$,
+		  	6/n13/ \small $k \in \mathbb{N}$,
+		  	9/n14/ \small $l \in \mathbb{N}$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+		 
+	\draw (4.5, -9) node[item] (n61) {\small $\hat{y} \in \mathbb{R}$};
+	
+	% object embeddings
+	\pause 
+	\foreach \x/\alph/\name in {
+		  	3/n22/ \small $\pmb{j} \in \mathbb{R}^{300}$,
+		  	9/n24/ \small $\pmb{l} \in \mathbb{R}^{300}$
+		 }{
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+
+	\foreach \source/\target in {n12/n22,n14/n24}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon_{object}$] (\target);
+	}
+	
+	% verb embeddings
+	\pause 
+	\foreach \x/\alph/\name in {
+			0/n21/ \small $\pmb{i} \in \mathbb{R}^{300}$,
+			6/n23/ \small $\pmb{k} \in \mathbb{R}^{300}$,			
+		}{
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+	
+	\foreach \source/\target in {n11/n21,n13/n23}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon 
+		'_{verb}$] (\target);
+	}
+				
+	% phrase embeddings
+	\pause				 
+	\foreach \x/\alph in {
+			1.5/n31,
+		  	7.5/n32,
+		 }{
+		 	\draw (\x,-4.5) node[item] (\alph) {};
+		 }
+	
+	\foreach \x/\alph/\name in {
+			1.5/n41/ \small $\pmb{m} \in \mathbb{R}^{100}$,
+			7.5/n42/ \small $\pmb{n} \in \mathbb{R}^{100}$
+		}{
+			\draw (\x, -6) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		}
+	
+	\draw (4.5, -7.5) node[item] (n51) {};
+		 
+	\draw (n21.south) edge[-, bend right = 36] (n31.center);
+	\draw (n22.south) edge[-, bend left = 36] (n31.center);	
+	\draw (n31.center) edge[function, edge label=$\varepsilon_{par}$] (n41);
+	
+	\draw (n23.south) edge[-, bend right = 36] (n32.center);
+	\draw (n24.south) edge[-, bend left = 36] (n32.center);	
+	\draw (n32.center) edge[function, edge label=$\varepsilon_{par}$] (n42);
+	
+	\pause
+	\draw (n41) edge[known, bend right=20] (n51.center);
+	\draw (n42) edge[known, bend left=20] (n51.center);
+	\draw (n51.center) edge[known, ->, near start, edge label= \small $cosine$] (n61);	
+\end{tikzpicture}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Training the Oracle}
+$\varepsilon_{par}$: \alert{recurrent autoencoder} ($\approx 700.000$ parameters)
+\includegraphics[scale=0.25]{N1.png}
+\end{frame}
+
+\begin{frame}{Utilizing the Oracle}
+\begin{block}{New Error Signal}
+\[
+cos(\pmb{V}_i(\pmb{j}), \varepsilon_{par}(\pmb{v},\pmb{j})) \approx 1
+\quad \forall \ (i,j) \in \mathcal{V} \times \mathcal{O}
+\]
+\end{block}
+
+\begin{itemize}
+\item $\varepsilon_{par}$ gives us paraphrase embeddings '\textit{for free}'
+\item We can use them to facilitate training
+\item Much smaller problem space
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Composing Networks}
+\begin{figure}
+\begin{tikzpicture}
+	[scale=0.3,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
+	
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i$,
+		  	6/n12/ \small $j$,
+		  	12/n13/ \small $k$,
+		  	18/n14/ \small $l$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+		 
+	\foreach \x/\alph/\name in {
+			-6/n21/ \small $\pmb{I}$,
+		  	0/n22/ \small $\pmb{i}$,
+		  	6/n23/ \small $\pmb{j}$,
+		  	12/n24/ \small $\pmb{K}$,
+		  	18/n25/ \small $\pmb{k}$,
+		  	24/n26/ \small $\pmb{l}$
+		 }{
+		 	\draw (\x,-6) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+		 }
+		 
+	\foreach \x/\alph in {3/n31, 21/n32}{
+		\draw (\x, -8) node (\alph) {};
+	}
+	
+	\foreach \x/\alph/\name in {
+		-6/n41/$\pmb{I}(\pmb{j})$, 3/n42/$\pmb{m}$, 12/n43/$\pmb{K}(\pmb{l})$, 21/n44/$\pmb{n}$}{
+		\draw (\x, -10) node[item] (\alph) {\textcolor{mDarkTeal}{\name}};
+	}
+	
+	\foreach \x/\alph in 
+	{-2/n51, 16.5/n52}
+	{\draw (\x, -12) node (\alph) {};}
+	
+	\foreach \x/\alph/\name in {
+		-2/n61/$\hat{y} '$, 16.5/n62/$\hat{y} ''$}
+	{\draw (\x, -14) node (\alph) {\textcolor{mDarkTeal}{\name}};}
+
+	\draw (3, -18) node (n71) {};
+	\draw (3, -21) node (n81) {$\hat{y}$};
+	
+	\foreach \source/\target in {n23/n21, n26/n24}
+	{\draw (\source) edge[bend right=40] (\target);}
+		
+		 
+	\foreach \source/\target in {n11/n22, n12/n23, n13/n25, n14/n26}{
+		\draw (\source) edge[known, ->] (\target);
+	}
+	
+	\foreach \source/\target in {n11/n21, n13/n24}{
+		\draw (\source) edge[->] (\target);
+	}
+	
+	\foreach \source/\target in {n22/n31,  n25/n32}
+	{\draw (\source) edge[known, bend right=25] (\target.center);}
+	\foreach \source/\target in {n23/n31,  n26/n32}
+	{\draw (\source) edge[known, bend left=25] (\target.center);}
+	\foreach \source/\target in {n31/n42, n32/n44}
+	{\draw (\source.center) edge[known, function] (\target);}
+	\foreach \source/\target in {n42/n51, n44/n52}
+	{\draw (\source) edge[known, bend left=15] (\target.center);}
+	\foreach \source/\target in {n21/n41, n24/n43}
+	{\draw (\source) edge[function] (\target);}
+	\foreach \source/\target in {n41/n51, n43/n52}
+	{\draw (\source) edge[known, bend right=15] (\target.center);}
+	\foreach \source/\target in {n51/n61, n52/n62}
+	{\draw (\source.center) edge[known, ->] (\target);}
+	\draw (n41) edge[known, bend right=40] (n71.center);
+	\draw (n43) edge[known, bend left=40] (n71.center);
+	\draw (n71.center) edge[known, function] (n81);	
+\end{tikzpicture}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Training the Original}
+$\varepsilon_{verb}$: \alert{tanh activated dense layer} ($\approx 30.000.000$ parameters)
+\includegraphics[scale=0.25]{N2.png}
+\end{frame}
+
+\begin{frame}[standout]
+\includegraphics[scale=0.25]{beauty2.jpg}\\
+The beast has been tamed! {\DejaSans ☺} 
+\end{frame}
+
+\section{Evaluation}
+
+\begin{frame}{Microstructure}
+Task-specific performance relates to the small-scale structure of the learned space:
+\vspace{10pt}
+
+\begin{tabular}{c|SS|SS} \toprule
+    {\multirow{2}{*}{\diagbox{\scriptsize Ground Truth}{\scriptsize Prediction}}} & 
+    \multicolumn{2}{S}{$\text{Oracle}$} & 
+    \multicolumn{2}{S}{$\text{Final}$}\\
+    & $\top$ & $\bot$ & $\top$ & $\bot$\\
+    \midrule
+    $\top$  & \color{Yes}{0.92} & \color{No}{0.08} & \color{Yes}{0.88} & \color{No}{0.02} \\
+    $\bot$  & \color{No}{0.08} & \color{Yes}{0.92} & \color{No}{0.12} & \color{Yes}{0.98} \\
+   \bottomrule
+\end{tabular}
+\end{frame}
+
+\begin{frame}{Macrostructure}
+\alert{3D PCA on paraphrase embeddings}
+
+\includegraphics[scale=0.29]{mapper.png}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Critique}
+\begin{enumerate}
+\item Uninformative error signal \textcolor{Maybe}{\textbf{?}}
+\item Over-parameterization
+\begin{itemize}
+\item[a)] Encoder / decoder architectures \textcolor{Maybe}{\textbf{?}}
+\item[b)] Linearity constraint \textcolor{No}{\xmark}
+\item[c)] Chasing after an oracle \textcolor{Maybe}{\textbf{?}}
+\item[d)] Bad scaling \textcolor{No}{\xmark}
+\end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Next Steps}
+\begin{enumerate}
+\item Directly evaluate verb matrices
+\item More structural constraints (activity regularization)
+\item Iterative learning
+\item Other data formats:
+\begin{itemize}
+\item Different syntactic types
+\item Different labels / samples altogether
+\end{itemize}
+\item Different oracle architectures
+\end{enumerate}
+\end{frame}
+
+\section{Bag of Tricks}
+\begin{frame}
+\begin{enumerate}
+\item Negative Sampling
+\item Curriculum Learning / Domain Adaptation
+\item Loss Mixing
+\end{enumerate}
+\end{frame}
 \end{document}
