@@ -40,14 +40,9 @@ block=fill}
 
 \begin{document}
   \maketitle
-  
-  
-\begin{frame}{Outline}
-\tableofcontents
-\end{frame} 
  
 \section{Motivation}
-\begin{frame}{DisCoCat}
+\begin{frame}{Distributional Compositional Semantics}
 
 	Idea: structure-preserving map $\mathcal{F}$
 	\[
@@ -59,13 +54,35 @@ block=fill}
 	\item Complex types translated to (multi-)linear maps (higher order tensors)
 	\end{itemize}
 \end{frame}
+
+\begin{frame}{Example}
+\centering
+
+	\vspace{40pt}
+	\begin{tabular}{c|c|c}
+	\toprule
+	Word Type & $\mathcal{G}$ Type & $\mathcal{F}$ Translation\\
+	\midrule
+	Noun & $NP$ & $\mathbb{R}^{NP}$ \\ 
+	Adjective & $NP \backslash NP$ & $\mathbb{R}^{NP \times NP} \equiv \mathbb{R}^{NP} \to \mathbb{R}^{NP}$\\
+	\end{tabular}
+	
+	\vspace{20pt}
+	\begin{align*}
+	\pmb{cat} & \in \mathbb{R}^{NP}\\
+	\pmb{black},\ \pmb{stray} & \in \mathbb{R}^{NP \times NP}\\
+	\pmb{black\ stray\ cat} & \in \mathbb{R}^{NP}\\
+	\end{align*}	
+	
+\end{frame}
   
 \begin{frame}{Why Compositionality?}
 	\begin{itemize}
 	\item Bridging of formal \& distributional semantics
 	\item Syntax-informed meaning derivations
 	\item Modeling of functional words
-	\item Formal treatment of ambiguous words
+	\item Formal treatment of ambiguous derivations
+	\item Contextual Disambiguation
 	\item Richer representations
 	\item[] \quad \vdots
 	\end{itemize}
@@ -85,8 +102,7 @@ block=fill}
 	\pause \textcolor{No}{\xmark}
 	\item Unsupervised techniques (\textit{a la word2vec})
 	\pause \textcolor{No}{\xmark}
-	\item Supervised learning
-	\pause \textcolor{Maybe}{\textbf{?}}
+	\item Supervised learning \textcolor{Maybe}{\textbf{?}}
 	\end{enumerate}
 \end{frame}
 
@@ -110,7 +126,7 @@ Examine whether supervised learning can be used to find higher-order word repres
 \begin{frame}{Finding Data}
 	Sample space must be:
 	\begin{itemize}
-	\item Labeled
+	\item labeled
 	\item constrained
 	\item of large size
 	\item of high quality
@@ -127,7 +143,7 @@ Examine whether supervised learning can be used to find higher-order word repres
 	\end{block}
 	
 	\begin{itemize}
-	\item Labeled \textcolor{Yes}{\checkmark}
+	\item labeled \textcolor{Yes}{\checkmark}
 	\item constrained \textcolor{No}{\xmark}
 	\footnotesize\textit{(different syntactic types)}
 	\normalsize
@@ -143,7 +159,7 @@ Examine whether supervised learning can be used to find higher-order word repres
 	\end{enumerate}
 
 	\begin{itemize}
-	\item Labeled \textcolor{Yes}{\checkmark}
+	\item labeled \textcolor{Yes}{\checkmark}
 	\item constrained \textcolor{Yes}{\checkmark}
 	\item of large size \textcolor{No}{\xmark} 
 	\footnotesize\textit{(>95\% loss)} 
@@ -201,8 +217,9 @@ Examine whether supervised learning can be used to find higher-order word repres
 	\end{align*}	
 \end{frame}
   
-\subsection{Intermediate Representations}
-  \begin{frame}{Objective Function}
+\subsection{Formulating the Network}
+
+  \begin{frame}{Training Objective}
     Our semantic interpretations are:
   	\begin{itemize}
   	\item Actions: $ \lceil a \rceil = \mathbb{R}^{A}$
@@ -222,7 +239,7 @@ Examine whether supervised learning can be used to find higher-order word repres
   	
 \end{frame}
 
-\begin{frame}{Formulating the network}
+\begin{frame}{Intermediate Representations}
   	\begin{block}{Solution}
 	Formulate $f_P$ to incorporate $\varepsilon_{verb}$.
 	\[
@@ -312,9 +329,9 @@ Examine whether supervised learning can be used to find higher-order word repres
 \end{frame}
 
 \begin{frame}{Sanity Check}
-\begin{block}{Error Signal}
+\begin{block}{Objective Function}
 \begin{align*}
-cos(\pmb{V}_i(\pmb{j}), \pmb{V}_k(\pmb{l})) \approx \mathcal{P}(i,j,k,l) 
+cos(\pmb{V}_i(\pmb{j}), \pmb{V}_k(\pmb{l})) \rightsquigarrow \mathcal{P}(i,j,k,l) 
 \quad
 \forall \ (i,j,k,l) \in \mathcal{V} \times \mathcal{O} \times \mathcal{V} \times \mathcal{O}
 \end{align*}
@@ -326,7 +343,7 @@ Considerations:
 \item Network Size\\
 \begin{itemize}
 \item $1.000$ verbs
-\item $300 \times 100 = 30.000$ parameters per verb
+\item $100 \times 300 = 30.000$ parameters per verb
 \item[$\Rightarrow$]  \alert{ $ 30.000.000 $ parameters} for $\varepsilon_{verb}$ to learn
 \end{itemize}
 \pause
@@ -358,7 +375,7 @@ Assume another pre-trained \alert{verb embedding function} $\varepsilon '_{verb}
 
 \pause
 \begin{block}{Oracle}
-We can now use a \alert{paraphrase embedding function} $\varepsilon_{par}$.
+We can now train a \alert{paraphrase embedding function} $\varepsilon_{par}$.
 	\[
 	\varepsilon_{par}: \mathbb{R}^{300} \times \mathbb{R}^{300} \to \mathbb{R}^{100}
 	\]
@@ -455,9 +472,9 @@ $\varepsilon_{par}$: \alert{recurrent autoencoder} ($\approx 700.000$ parameters
 \end{frame}
 
 \begin{frame}{Utilizing the Oracle}
-\begin{block}{New Error Signal}
+\begin{block}{New Objective Function}
 \[
-cos(\pmb{V}_i(\pmb{j}), \varepsilon_{par}(\pmb{v},\pmb{j})) \approx 1
+cos(\pmb{V}_i(\pmb{j}), \varepsilon_{par}(\pmb{v},\pmb{j})) \rightsquigarrow 1
 \quad \forall \ (i,j) \in \mathcal{V} \times \mathcal{O}
 \]
 \end{block}
