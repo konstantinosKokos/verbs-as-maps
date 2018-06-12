@@ -474,7 +474,7 @@ $\varepsilon_{par}$: \alert{recurrent autoencoder} ($\approx 700.000$ parameters
 \begin{frame}{Utilizing the Oracle}
 \begin{block}{New Objective Function}
 \[
-cos(\pmb{V}_i(\pmb{j}), \varepsilon_{par}(\pmb{v},\pmb{j})) \rightsquigarrow 1
+cos(\pmb{V}_i(\pmb{j}), \varepsilon_{par}(\pmb{v}_i,\pmb{j})) \rightsquigarrow 1
 \quad \forall \ (i,j) \in \mathcal{V} \times \mathcal{O}
 \]
 \end{block}
@@ -605,13 +605,13 @@ Task-specific performance relates to the small-scale structure of the learned sp
 
 \begin{frame}{Critique}
 \begin{enumerate}
-\item Uninformative error signal \textcolor{Maybe}{\textbf{?}}
+\item Metric reliability
+\item Uninformative error signal
 \item Over-parameterization
 \begin{itemize}
-\item[a)] Encoder / decoder architectures \textcolor{Maybe}{\textbf{?}}
-\item[b)] Linearity constraint \textcolor{No}{\xmark}
-\item[c)] Chasing after an oracle \textcolor{Maybe}{\textbf{?}}
-\item[d)] Bad scaling \textcolor{No}{\xmark}
+\item[a)] Linearity constraint
+\item[b)] Chasing after an oracle
+\item[c)] Bad scaling
 \end{itemize}
 \end{enumerate}
 \end{frame}
@@ -627,15 +627,47 @@ Task-specific performance relates to the small-scale structure of the learned sp
 \item Different labels / samples altogether
 \end{itemize}
 \item Different oracle architectures
+\item Different embedder architectures (encoder/decoder)
 \end{enumerate}
 \end{frame}
 
 \section{Bag of Tricks}
-\begin{frame}
-\begin{enumerate}
-\item Negative Sampling
-\item Curriculum Learning / Domain Adaptation
-\item Loss Mixing
-\end{enumerate}
+\begin{frame}{Negative Sampling}
+Let $L: \mathbb{R} \times \mathbb{R} \to \mathbb{R}$ be the \textit{loss function}. 
+
+\vspace{20pt}
+Objective translates to:
+\begin{align}
+\tag{\textcolor{No}{Intractable}}
+\min_{P}\  L\left[\mathcal{P}\left( i,j,k,l\right),\ \hat{y}_P\right]
+\quad \forall (i,j,k,l)
+\end{align}
+
+Randomly generate and select negative samples (different every epoch).
+\end{frame}
+
+\begin{frame}{Curriculum Learning}
+\vspace{20pt}
+\centering
+"\textit{Two phrases are not similar unless they are}"
+
+\vspace{30pt}
+\begin{itemize}
+\item Class imbalance $\Rightarrow$ bad predictions
+\item Treat negative samples as noise
+\item Learn positive examples then increase noise
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Loss Mixing}
+\vspace{20pt}
+\centering
+Cross-entropy vs. MSE vs. Categorical Hinge
+
+\vspace{30pt}
+\begin{itemize}
+\item Different assumptions, none correct.
+\item Many falsities $\Rightarrow$ Truth \textcolor{Maybe}{\textbf{?}}
+\end{itemize}
 \end{frame}
 \end{document}
