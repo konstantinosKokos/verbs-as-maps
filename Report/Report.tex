@@ -47,6 +47,7 @@ This document is meant to act as a brief technical overview of my work on transf
       \multirow{2}{*}{23/06/2018} &  \textbf{First Draft} \\
        & \quad Preface \\
        & \quad Introduction \\
+       & \quad Student Net \\
        & \quad Intractability \\
        \midrule
     \end{tabularx}
@@ -65,7 +66,7 @@ The grammar is responsible for deriving proofs for well-formed linguistic units.
 	Noun & \sc{np} & $\lceil \textsc{np} \rceil$ \\ 
 	Adjective & \sc{np} / \sc{np} & $\lceil \textsc{np} \rceil \to \lceil \textsc{np} \rceil$\\
 	\end{tabular}
-	\caption{Example translations from grammatic types to $\mathcal{G}$ types to vector spaces. If noun-phrases occupy an arbitrary vector space, $\lceil \textsc{np} \rceil$, then adjectives are an endomorphism of that space.}
+	\caption{\textit{Example translations from grammatic types to $\mathcal{G}$ types to vector spaces. If noun-phrases occupy an arbitrary vector space, $\lceil \textsc{np} \rceil$, then adjectives are an endomorphism of that space.}}
 \end{table}
 
 Using $\mathcal{F}$, we may assign vector spaces to simple types of $\mathcal{G}$. Complex types can then be translated to high-order tensors (or equivallently multi-linear maps), which operate on their arguments (as dictated by $\mathcal{G}$), to produce syntactically-informed vectorial constructions for larger phrases. Crucially, this allows us to benefit from both the applied neuro-distributional approach and the more theoretically grounded aspects of computational linguistics in meaningfully constructing phrase or sentence numerical representations.
@@ -106,9 +107,10 @@ PPDB is itself automatically annotated, meaning that it contains a significant a
 \paragraph{Machine Readability}
 The last preprocessing step is to make the dataset machine-readable; we initiate two injective dictionaries, mapping verbs and objects to and from unique naturals:
 \begin{align*}
-	\mathcal{V}&: \{v_1: 1, v_2: 2, ..., v_N: N\}\\
-	\mathcal{O}&: \{o_1: 1, o_2: 2, ..., o_M: M\}
+	\mathcal{V}&: \{v_1: 1, v_2: 2, ..., v_V: V\}\\
+	\mathcal{O}&: \{o_1: 1, o_2: 2, ..., o_O: O\}
 \end{align*}
+where $V, O$ the total number of unique verbs and objects, respectively. 
 
 Via this encoding, we can now formulate our ideal function as a relation $\mathcal{P}$; it is a function that accepts two tuples of two naturals each (one tuple uniquely determines a verb-object pair), and returns either $1$ if the two encoded phrases are paraphrastic or $0$ otherwise:
 \begin{align*}
@@ -123,16 +125,105 @@ Via this encoding, we can now formulate our ideal function as a relation $\mathc
 The verb(/object) identifiers can be one-hot encoded before being fed as an input to any embedding layer. One-hot encoding translates a natural $n$ from a strictly ordered set of size $N$ to a $N$-dimensional vector, whose only non-zero element is its $n$-th one (being equal to $1$). This allows each verb(/object) to be assigned a tensorial representation independent of how the rest of the words are represented. The output is already in an ideal form for a classification task.
 
 \section{Student Network}
-Given the ideal function $\mathcal{P}$, we may begin assembling a network. The goal we set was to train some verb embedding function, which takes a verb's identifier and returns its correspondig matrix:
+Given the ideal function $\mathcal{P}$, we may begin assembling a network. The goal we set was to train some verb embedding function, which takes a verb's identifier $i$ and returns its correspondig matrix $\mathbf{V}_i$:
  \[\varepsilon_{verb}: \mathbb{N} \to \mathbb{R}^{100 \times 300}\]
 
-Including the one-hot encoding process, the function is simply a trainable linear map implemented by a feedforward, linearly activated, single-layer network with no bias and weights:
+Leaving the one-hot encoding ($\mathbb{N} \to [0,1]^V$) implicit, the function is simply a trainable linear map implemented by a feedforward, linearly activated layer with no bias and weights:
 \[
-\mathbf{E}_{verb}  \in \mathbb{R}^{\abs{V} \times 30,000,000}
+\mathbf{E}_{verb}  \in \mathbb{R}^{V \times 30,000,000}
 \]
-followed by a reshape. For reasons of brevity, the one-hot encoding and reshaping processes will be left implicit from now on.
+followed by a reshape. For reasons of brevity and readability, the one-hot encoding and reshaping processes will be implied from now on.
 
-The function we wish to train, $\varepsilon_{verb}$, seems to have little in common with our ideal function's $\mathcal{P}$ signature.
+The function we wish to train, $\varepsilon_{verb}$, seems to have little in common with our ideal function's $\mathcal{P}$ signature. This poses no significant issue, as long as we find a functional decomposition of our approximation model $F_p$, such that it includes $\varepsilon_{verb}$:
+\[
+F_p = f_1 \circ f_2 \circ \dots \circ \varepsilon_{verb} \circ \dots
+\]
+
+To simplify the problem, we can assume that the object embeddings can be acquired "for free" via a pretrained embedding layer, which similarly accepts an identifier $i$ and returns an object vector $\mathbf{o}_i$:
+\[
+\varepsilon_{object}: \mathbb{N} \to \mathbb{R}^{300}
+\]
+
+Given such a function, we know that an "action" embedding may be acquired by simply applying an object vector to a verb matrix. Two such embeddings can then be compared via any measure of vector distance to produce a scalar. The most common solution, and the one employed in this particular instantiation, is cosine similarity:
+\[
+cos(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x}\cdot \mathbf{y}}{\abs{\mathbf{x}}\cdot \abs{\mathbf{y}}}
+\]
+
+The above sequence of transformations result in a network signature that is fully matching our samples. It can be visually inspected in Fig.\ref{fig:std}.
+\\
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+	[auto,
+	scale=1,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
+						
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i \in \mathbb{N}$,
+		  	3/n12/ \small $j \in \mathbb{N}$,
+		  	6/n13/ \small $k \in \mathbb{N}$,
+		  	9/n14/ \small $l \in \mathbb{N}$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+		 
+	\draw (4.5, -9) node[item] (n51) {\textcolor{black}{$\hat{y} \in \mathbb{R}$}};	
+	
+	
+	% object embeddings
+	 
+	\foreach \x/\alph/\name in {
+			3/n22/ \small $\pmb{j} \in \mathbb{R}^{300}$,
+		  	9/n24/ \small $\pmb{l} \in \mathbb{R}^{300}$
+		 }{
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+
+		\foreach \source/\target in {n12/n22,n14/n24}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon_{object}$] (\target);
+	}
+
+	% verb embeddings
+	
+	\foreach \x/\alph/\name in {
+			6/n23/ \small $\pmb{\mathcal{K}} \in \mathbb{R}^{100 \times 300}$,			
+			0/n21/ \small $\pmb{\mathcal{I}} \in \mathbb{R}^{100 \times 300}$,		}{
+			\draw (\x, -3) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+		 
+	\foreach \source/\target in {n11/n21,n13/n23}
+	{
+		\draw (\source) edge[function, edge label=$\varepsilon_{verb}$] (\target);
+	}
+	
+	% phrase embeddings
+	
+	\foreach \x/\alph/\name in {
+			1.5/n31/ \small $\pmb{\mathcal I}(\pmb{j}) \in \mathbb{R}^{100}$,
+		  	7.5/n32/ \small $\pmb{\mathcal K}(\pmb{l}) \in \mathbb{R}^{100}$,
+		 }{
+		 	\draw (\x,-6) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+
+	\draw (n22) edge[-, bend right=30] (n21);
+	\draw (n21) edge[->, bend right=20] (n31.north);
+	\draw (n24) edge[-, bend right=30] (n23);
+	\draw (n23) edge[->, bend right=20] (n32.north);	
+	
+	
+	\draw (4.5, -7.5) node[item] (n41) {};
+
+	\draw (n31) edge[known, bend right=20] (n41.center);
+	\draw (n32) edge[known, bend left=20] (n41.center);
+	\draw (n41.center) edge[known,->, near start, edge label= \small $cosine$] (n51);	
+\end{tikzpicture}
+\caption{\textit{Abstract view of the student network's data flow and its transformations. Grayed out arrows represent non-trainable functions.}}
+\label{fig:std}
+\end{figure}
 
 \section{Objective Function}
 \label{sec:obj}
