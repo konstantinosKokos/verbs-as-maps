@@ -31,7 +31,7 @@
 }
 
 %%% COMMANDS
-\newcommand{\abs}[1]{\lvert #1\rvert}
+\newcommand{\abs}[1]{\lvert\lvert #1\rvert\rvert}
 
 \begin{document}
 \maketitle
@@ -44,12 +44,7 @@ This document is meant to act as a brief technical overview of my work on transf
       \toprule
       \textbf{Date} & \textbf{Changes} \\
       \midrule
-      \multirow{2}{*}{23/06/2018} &  \textbf{First Draft} \\
-       & \quad Preface \\
-       & \quad Introduction \\
-       & \quad Student Net \\
-       & \quad Intractability \\
-       \midrule
+      {25/06/2018} &  {First Draft} \\
     \end{tabularx}
     
 \section{Introduction}
@@ -176,8 +171,8 @@ The above sequence of transformations result in a network signature that is full
 	% object embeddings
 	 
 	\foreach \x/\alph/\name in {
-			3/n22/ \small $\pmb{j} \in \mathbb{R}^{300}$,
-		  	9/n24/ \small $\pmb{l} \in \mathbb{R}^{300}$
+			3/n22/ \small $\mathbf{j} \in \mathbb{R}^{300}$,
+		  	9/n24/ \small $\mathbf{l} \in \mathbb{R}^{300}$
 		 }{
 		 	\draw (\x,-3) node[item] (\alph) {\textcolor{black}{\name}};
 		 }
@@ -190,8 +185,8 @@ The above sequence of transformations result in a network signature that is full
 	% verb embeddings
 	
 	\foreach \x/\alph/\name in {
-			6/n23/ \small $\pmb{\mathcal{K}} \in \mathbb{R}^{100 \times 300}$,			
-			0/n21/ \small $\pmb{\mathcal{I}} \in \mathbb{R}^{100 \times 300}$,		}{
+			6/n23/ \small $\mathbf{\mathcal{K}} \in \mathbb{R}^{100 \times 300}$,			
+			0/n21/ \small $\mathbf{\mathcal{I}} \in \mathbb{R}^{100 \times 300}$,		}{
 			\draw (\x, -3) node[item] (\alph) {\textcolor{black}{\name}};
 		 }
 		 
@@ -203,8 +198,8 @@ The above sequence of transformations result in a network signature that is full
 	% phrase embeddings
 	
 	\foreach \x/\alph/\name in {
-			1.5/n31/ \small $\pmb{\mathcal I}(\pmb{j}) \in \mathbb{R}^{100}$,
-		  	7.5/n32/ \small $\pmb{\mathcal K}(\pmb{l}) \in \mathbb{R}^{100}$,
+			1.5/n31/ \small $\mathbf{\mathcal I}(\mathbf{j}) \in \mathbb{R}^{100}$,
+		  	7.5/n32/ \small $\mathbf{\mathcal K}(\mathbf{l}) \in \mathbb{R}^{100}$,
 		 }{
 		 	\draw (\x,-6) node[item] (\alph) {\textcolor{black}{\name}};
 		 }
@@ -232,7 +227,7 @@ The network, as depicted above, type checks and is fully differentiable. Given s
 \min_{\forall i,j,k,l} \mathcal{L}\{[cos(\mathbf{V}_i(\mathbf{o}_j), cos(\mathbf{V}_k,\mathbf{o}_l)], \ \mathbf{P}(i,j,k,l)\}
 \]
 
-Potential candidates for $\mathcal{L}$ might be mean square error, binary crossentropy, categorial hinge or any linear combination thereof. A short discussion on how each particular choice affects the training process can be found in Section todo.
+Potential candidates for $\mathcal{L}$ might be mean square error, binary crossentropy, categorial hinge or any linear combination thereof. A short discussion on how each particular choice affects the training process can be found in Section \ref{loss}.
 
 Disregarding the particular choice of $\mathcal{L}$, let us translate the objective function into natural language. We want to minimize some measure of classification penalty between the paraphrase prediction of two phrases and their original label, as given by our training set. More concretely, we want to obtain a phrase embedding from each phrase, constructed by applying an object vector to a verb matrix, such that when we compare two phrase vectors against one another via cosine similarity the result is close to $1$ if these two phrases are labeled as paraphrastic or $0$ otherwise.
 
@@ -247,13 +242,318 @@ and actions, the resulting layer enumerates $30,000,000$ trainable parameters.
 The objective function quantifies over two directly interacting spaces; the space of verbs and the space of actions. This is problematic in many ways; essentially, each space will be sensitive to perturbations of the other (at best), or their joint optimization might be infeasible due to one's minimum being at odds to the other's (at worst).
 
 \paragraph{Non-Convexity}
-More importantly, however, both of the two spaces that we are optimizing over are non-convex. This means that the each of them may have a non-unique global minimum and possibly a large number of local minima. Intuitively, the paraphrase space requires that the vectors of two non-paraphrastic phrases are perpendicular to one another. In a two dimensional space, a simple rotation operation applied on all the vectors would still yield a new solution from an existing one. This is even further attenuated in a higher-dimensional space. At the same time, the verb space requires that an object vector $\mathbf{o}$ applied on a verb matrix $\mathbf{V}$ would result in some predefined phrase vector $\mathbf{p}$. Analytically solving $\mathbf{V}\mathbf{o}=\mathbf{p}$ w.r.t. to $\mathbf{V}$ is impossible, as there exist infinite possible linear combinations of $\mathbf{o}$ that result in $\mathbf{p}$. More realistically, we have a system of linear equations $\mathbf{V}\mathbf{o}_1 = \mathbf{p}_1, \dots \mathbf{V}\mathbf{o}_k=\mathbf{p}_k$ for all $k$ unique objects vectors applied on the same verb $\mathbf{V}$ yielding different phrase vectors, thus constraining our solution space; however, there is still limited quarantee of the solutions being unique.
+More importantly, however, both of the two spaces that we are optimizing over are non-convex. This means that the each of them may have a non-unique global minimum and possibly a large number of local minima. Intuitively, the paraphrase space requires that the vectors of two non-paraphrastic phrases are perpendicular to one another. In a two dimensional space, a simple rotation operation applied on all the vectors would still yield a new solution from an existing one. This is even further attenuated in a higher-dimensional space, where a vector's perpendiculars may occupy a huge hypersurface. At the same time, the verb space requires that an object vector $\mathbf{o}$ applied on a verb matrix $\mathbf{V}$ would result in some predefined phrase vector $\mathbf{p}$. Analytically solving $\mathbf{V}\mathbf{o}=\mathbf{p}$ w.r.t. to $\mathbf{V}$ is impossible, as there exist infinite possible linear combinations of $\mathbf{o}$ that result in $\mathbf{p}$. More realistically, we have a system of linear equations $\mathbf{V}\mathbf{o}_1 = \mathbf{p}_1, \dots \mathbf{V}\mathbf{o}_k=\mathbf{p}_k$ for all $k$ unique objects vectors applied on the same verb $\mathbf{V}$ yielding different phrase vectors, thus constraining our solution space; however, there is still limited quarantee of the solutions being unique.
 
-\paragraph{}
-The above are all clear indicators of the intricacies of attempting to train the network. Even though our operations are end-to-end differentiable, theoretically allowing gradient-based methods to work, the solution space is so vast, interdependent and noisy that we have no quarantee of convergence.
+\section{Teacher Network}
+The above are all clear indicators of the impracticality of attempting to directly train the network. Even though our operations are end-to-end differentiable, theoretically allowing gradient-based methods to work, the solution space is so vast, interdependent and noisy that we have no quarantee of convergence.
+
+This problem can be bypassed by breaking the optimization process down into two smaller, individually easier to solve, components; one relating to finding the action space vectors, and a second one for transfering this knowledge to the verb space matrices. To do so, we can treat the original network as a \textit{student network}, supervised by an oracle, or \textit{teacher network}, in a process called transfer learning.
+
+To begin with, we can simplify things by assigning each verb a pretrained vector, in a manner similar to our object embedding function. We therefore can assume a new pretreained verb embedding function, that accepts a verb's identifier $i$ and yields a vector rather $\mathbf{v}_i$:
+\[
+\varepsilon_{verb}' : \mathbb{N} \to \mathbb{R}^{300}
+\]
+
+A verb vector and an object vector can be vertically stacked to form an order-2 vector sequence $[\mathbf{v},\mathbf{o}] \in \mathbb{R}^{2\times 300}$. Such sequences are ideal inputs for recurrent neural networks, and we can construct one such network to process the sequence. The exact implementation is that of a long short-term memory autoencoder, which is standard practice in language related tasks. From a high level perspective, the autoencoder can be seen as an action embedding function:
+\[
+\varepsilon_{act} : \mathbb{R}^{300} \times \mathbb{R}^{300} \to \mathbb{R}^{100}
+\]
+
+The action embeddings of two phrases, as given by the autoencoder, can be contrasted with one another, again using cosine similarity, yielding a scalar prediction of paraphrasing. Visually, the oracle network can be viewed in Fig.\ref{fig:oracle}
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+	[auto,
+	scale=1,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
+	
+	% I/O					
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i \in \mathbb{N}$,
+		  	3/n12/ \small $j \in \mathbb{N}$,
+		  	6/n13/ \small $k \in \mathbb{N}$,
+		  	9/n14/ \small $l \in \mathbb{N}$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+		 
+	\draw (4.5, -9) node[item] (n61) {\small $\hat{y} \in \mathbb{R}$};
+	
+	% object embeddings
+	 
+	\foreach \x/\alph/\name in {
+		  	3/n22/ \small $\mathbf{j} \in \mathbb{R}^{300}$,
+		  	9/n24/ \small $\mathbf{l} \in \mathbb{R}^{300}$
+		 }{
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+
+	\foreach \source/\target in {n12/n22,n14/n24}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon_{object}$] (\target);
+	}
+	
+	% verb embeddings
+	 
+	\foreach \x/\alph/\name in {
+			0/n21/ \small $\mathbf{i} \in \mathbb{R}^{300}$,
+			6/n23/ \small $\mathbf{k} \in \mathbb{R}^{300}$,			
+		}{
+		 	\draw (\x,-3) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+	
+	\foreach \source/\target in {n11/n21,n13/n23}
+	{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon 
+		'_{verb}$] (\target);
+	}
+				
+	% phrase embeddings
+					 
+	\foreach \x/\alph in {
+			1.5/n31,
+		  	7.5/n32,
+		 }{
+		 	\draw (\x,-4.5) node[item] (\alph) {};
+		 }
+	
+	\foreach \x/\alph/\name in {
+			1.5/n41/ \small $\mathbf{m} \in \mathbb{R}^{100}$,
+			7.5/n42/ \small $\mathbf{n} \in \mathbb{R}^{100}$
+		}{
+			\draw (\x, -6) node[item] (\alph) {\textcolor{black}{\name}};
+		}
+	
+	\draw (4.5, -7.5) node[item] (n51) {};
+		 
+	\draw (n21.south) edge[-, bend right = 36] (n31.center);
+	\draw (n22.south) edge[-, bend left = 36] (n31.center);	
+	\draw (n31.center) edge[function, edge label=$\varepsilon_{act}$] (n41);
+	
+	\draw (n23.south) edge[-, bend right = 36] (n32.center);
+	\draw (n24.south) edge[-, bend left = 36] (n32.center);	
+	\draw (n32.center) edge[function, edge label=$\varepsilon_{act}$] (n42);
+	
+	
+	\draw (n41) edge[known, bend right=20] (n51.center);
+	\draw (n42) edge[known, bend left=20] (n51.center);
+	\draw (n51.center) edge[known, ->, near start, edge label= \small $cosine$] (n61);	
+\end{tikzpicture}
+\caption{\textit{Abstract view of the teacher network's data flow and its transformations. Grayed out arrows represent non-trainable functions.}}
+\label{fig:oracle}
+\end{figure}
+
+Given free access over high-quality pretrained vectors for the verb embeddings significantly accelarates training. Compared to our original implementation, this network has far less trainable parameters and is thus much easier to train.
+
+\section{Composing Networks}
+The question now turns to utilizing the trained teacher's intermediate representations. Since it has managed to adequately solve the paraphrase detection problem, we can assume that its action embeddings are of high-quality and therefore could act as a good guide for the student network to follow. 
+
+First, the two networks are internally connected with one another, and the teacher network's weights are frozen; from now on the teacher can be treated as a fixed function. Then the student network's action embeddings are compared with the teacher's, giving us access to one new additive loss that needs to be minimized (or two in real-time, as the network is simultaneously operating and optimizing on two phrases):
+\[
+\min_{\forall i,j} \mathcal{L}\{[cos(\mathbf{V}_i(\mathbf{o}_j), \varepsilon_{act}(i,j)], 1\}
+\]
+
+Intuitively, we let the student train on its paraphrase detection objective, while also forcing it to construct action vectors that are as parallel to the teacher's as possible. Even though it may not always be able to do so (remember that we are trying to approximate a non-linear function with a linear one), the extra error signal pushes it away from local minima in the global error landscape. Since the oracle embeddings are already capable of predicting paraphrasing successfully, and the student is trained to mimic the oracle, it follows that it should also learn to predict paraphrasing. To negate the overabundance of positive labels induced by these extra error signals and force variation in the learned representations, we may progressively increase the ratio of negative over positive samples provided during the training process. 
+
+\begin{figure}
+\centering
+\begin{tikzpicture}
+	[scale=0.4,
+	item/.style = {rectangle, text width = 6em, align=center},
+	function/.style = {->}, 
+	known/.style = {gray!90}]
+	
+	\foreach \x/\alph/\name in {
+			0/n11/ \small $i$,
+		  	6/n12/ \small $j$,
+		  	12/n13/ \small $k$,
+		  	18/n14/ \small $l$
+		 }{
+		 	\draw (\x,0) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+		 
+	\foreach \x/\alph/\name in {
+			-6/n21/ \small $\mathbf{I}$,
+		  	0/n22/ \small $\mathbf{i}$,
+		  	6/n23/ \small $\mathbf{j}$,
+		  	12/n24/ \small $\mathbf{K}$,
+		  	18/n25/ \small $\mathbf{k}$,
+		  	24/n26/ \small $\mathbf{l}$
+		 }{
+		 	\draw (\x,-6) node[item] (\alph) {\textcolor{black}{\name}};
+		 }
+		 
+	\foreach \x/\alph in {3/n31, 21/n32}{
+		\draw (\x, -8) node (\alph) {};
+	}
+	
+	\foreach \x/\alph/\name in {
+		-6/n41/$\mathbf{I}\mathbf{j}$, 3/n42/$\pmb{m}$, 12/n43/$\pmb{K}\pmb{l}$, 21/n44/$\pmb{n}$}{
+		\draw (\x, -10) node[item] (\alph) {\textcolor{black}{\name}};
+	}
+	
+	\foreach \x/\alph in 
+	{-2/n51, 16.5/n52}
+	{\draw (\x, -12) node (\alph) {};}
+	
+	\foreach \x/\alph/\name in {
+		-2/n61/$\hat{y} '$, 16.5/n62/$\hat{y} ''$}
+	{\draw (\x, -14) node (\alph) {\textcolor{black}{\name}};}
+
+	\draw (3, -18) node (n71) {};
+	\draw (3, -21) node (n81) {$\hat{y}$};
+	
+	\foreach \source/\target in {n23/n21, n26/n24}
+	{\draw (\source) edge[bend right=40] (\target);}
+		
+		 
+	\foreach \source/\target in {n11/n22,n13/n25}{
+		\draw (\source) edge[known, ->,edge label=$\varepsilon_{verb} '$] (\target);
+	}
+	
+	\foreach \source/\target in {n12/n23,n14/n26}{
+		\draw (\source) edge[known, ->, edge label=$\varepsilon_{object}$] (\target);
+	}
+	
+	\foreach \source/\target in {n11/n21, n13/n24}{
+		\draw (\source) edge[->, edge label=$\varepsilon_{verb}$] (\target);
+	}
+	
+	\foreach \source/\target in {n22/n31,  n25/n32}
+	{\draw (\source) edge[known, bend right=25] (\target.center);}
+	\foreach \source/\target in {n23/n31,  n26/n32}
+	{\draw (\source) edge[known, bend left=25] (\target.center);}
+	\foreach \source/\target in {n31/n42, n32/n44}
+	{\draw (\source.center) edge[known, function, edge label=$\varepsilon_{act}$] (\target);}
+	\foreach \source/\target in {n42/n51, n44/n52}
+	{\draw (\source) edge[known, bend left=15] (\target.center);}
+	\foreach \source/\target in {n21/n41, n24/n43}
+	{\draw (\source) edge[function] (\target);}
+	\foreach \source/\target in {n41/n51, n43/n52}
+	{\draw (\source) edge[known, bend right=15] (\target.center);}
+	\foreach \source/\target in {n51/n61, n52/n62}
+	{\draw (\source.center) edge[known, ->, edge label=$cosine$] (\target);}
+	\draw (n41) edge[known, bend right=40] (n71.center);
+	\draw (n43) edge[known, bend left=40] (n71.center);
+	\draw (n71.center) edge[known, function, edge label=$cosine$] (n81);	
+\end{tikzpicture}
+\caption{\textit{Abstract view of the composition of the two networks. The cosine distance between the teacher's and the student's action embeddings yield two new predictions, $\hat{y}'$ and $\hat{y}''$, which should always be close to $1$. Note that $\varepsilon_{act}$ is grayed out, as its weights are now frozen.}}
+\label{fig:composed}
+\end{figure}
+
+\section{Technical Details}
+\paragraph{Recurrent Autoencoder}
+Our $\varepsilon_{act}$ is a neural function implemented by a long short-term memory unit followed by a fully connected layer. The LSTM accepts a vector sequence $[\mathbf{v}, \mathbf{o}]$ as its input and produces an output vector $\mathbf{h}_2$. Its operations are described by the following dynamic state equations:
+
+\hspace{-50pt}
+\begin{minipage}{0.55\textwidth}
+	\begin{align}
+	\mathbf{i}_1 &= \sigma(\mathbf{W}_i[\mathbf{v};\mathbf{0}] + \pmb{\beta}_i) \tag{Input Gate : t=1}\\
+	\mathbf{f}_1 &= \sigma(W_f[\mathbf{v};\mathbf{0}] + \pmb{\beta}_f) \tag{Forget Gate : t=1}\\
+	\mathbf{c}_1 &= \mathbf{i}_1 tanh(\mathbf{W}_c[\mathbf{v};\pmb{0}] + \pmb{\beta}_c) \tag{Memory Cell: t=1}\\
+	\mathbf{g}_1 &= \sigma(\mathbf{W}_o[\mathbf{v};\mathbf{0}] + \pmb{\beta}_o) \tag{Output Gate: t=1}\\
+	\mathbf{h} &= \mathbf{g}_1 tanh(\mathbf{c}_1) \tag{Hidden Vector}
+	\end{align}
+\end{minipage}
+\hspace{10pt}
+\begin{minipage}{0.55\textwidth}
+	\begin{align}
+	\mathbf{i}_2 &= \sigma(\mathbf{W}_i[\mathbf{o};\mathbf{h}] + \pmb{\beta}_i) \tag{Input Gate : t=2}\\
+	\mathbf{f}_2 &= \sigma(\mathbf{W}_f[\mathbf{o};\mathbf{h}] + \pmb{\beta}_f) \tag{Forget Gate : t=2}\\
+	\mathbf{c}_2 &= \mathbf{i}_2 tanh(\mathbf{W}_c[\mathbf{o};\pmb{h}] + \pmb{\beta}_c) \tag{Memory Cell: t=2}\\
+	\mathbf{g}_2 &= \sigma(\mathbf{W}_o[\mathbf{o};\mathbf{h}] + \pmb{\beta}_o) \tag{Output Gate: t=2}\\
+	\mathbf{h}_2 &= \mathbf{g}_2 tanh(\pmb{c}_2) \tag{Output Vector}
+	\end{align}
+\end{minipage}
+\\
+
+Where $\textbf{W}$, $\pmb{\beta}$ denote trainable weight matrices and vectors, respectively, $\sigma$ is the sigmoid function and $tanh$ the hyperbolic tangent. The output vector is set to be $300$-dimensional so as to retain the original input vector size. It is then compressed via a fully-connected layer to our phrase embedding $\mathbf{p}$, whose dimensionaly we specify as $100$:
+\[
+\mathbf{p} = tanh(\mathbf{W}_p\mathbf{h}_2 + \pmb{\beta}_p)
+\]
+The choice of $tanh$ as the activation function here is important; the original GloVe vectors reside in $\mathbb{R}^{300}$, i.e. they may contain negative values. That means that when we obtain a phrase embedding through matrix-vector multiplication, it will also be in $\mathbb{R}^{300}$, therefore the autoencoder's output must match that space to remain compatible with the student network. Since $tanh$ has range $[-1,1]$, it makes for a suitable choice.
+
+\paragraph{Paraphrasing Prediction}
+Two options arise when trying to predict paraphrasing from two action embeddings (regardless of their source). The first and simplest one would to compute their cosine distance and directly use the result as the probability of paraphrasing, to be optimized. This may seem appealing but it entails two problems. The cosine similarity of two real valued vectors has range $[-1,1]$, whereas our labels take binary values $\{0,1\}$. This means that:
+\begin{enumerate}
+\item Its continuous nature contradicts the discrete one of our labels, in turn necessitating its use as a probability measure. 
+\item Its negative range disallows it from directly fitting a probability distribution, as doing so would leave half its representational capacity unused.
+\end{enumerate}
+
+An easy solution would be to simply normalize it to $[0,1]$. However, it is more efficient to instead allow a more general, trainable transformation. A shallow feedforward network is used, implementing:
+\[
+\hat{y} = \sigma(\mathbf{W}_ycos(\mathbf{p}_1,\mathbf{p}_2) + \beta_y) 
+\]
+ 
+Where $\mathbf{p}_1, \mathbf{p}_2$ our compared vectors. The impact of choice between normalization or arbitrary transformation seems negligible but is hard to concretely measure. It seems that the transformation allows for higher peak performance scores and yields more visually convincing end results.
+
+\paragraph{Loss Function}
+\label{loss}
+Another crucial choice is that of a loss function $\mathcal{L}$. The available options are binary crossentropy, mean square error and categorial hinge; each of which affects the optimization process in different ways. The most immediate choice would be binary crossentropy, since our training task is binary classification. However, it could be argued that the training task is just a means towards the construction of informative verb matrices, therefore we have limited interest in the classification performance itself. It would then make sense to use mean square error between the cosine similarity (normalized or otherwise) and the prediction label, as the cosine similarity space should itself be uniform continuous. A third alternative would be to use categorial hinge, which is essentially fitting the equivalent of a SVM kernel on top of our network, in attempt to maximize the separability of positive and negative paraphrastic predictions. Categorial hinge is unique in its ability to assign less importance to the exact value of a prediction, as long as it remains above(/below) the correct classification threshold; it has also been successfully used before in paraphrasing prediction tasks.
+
+Quantifying the impact of the loss function is very hard, given its interactions with the rest of the design decisions and the stochastic nature of the process. From an experimental point of view, binary crossentropy seems to yield higher performance scores when utilizing a regression layer on top of the cosine computation, whereas mean square error improves training speed on a simple normalized cosine. A weighted sum of the two apparently combines the best of both worlds and outperforms each of them individualy, as well as categorial hinge.
+
+\paragraph{Optimization Algorithm}
+The optimization is performed using Adam with a learning rate of $10^{-5}$. 
+
+\paragraph{Negative Sampling}
+As PPDB contains only paraphrastic pairs (i.e. positive examples), non-paraphrastic pairs (i.e. negative examples) have to be generated by random sampling. Two randomly selected phrases are assumed to be non-paraphrastic by default, unless they co-occur in a paraphrase pair or the both of them are mutually paraphrastic with respect to a third, shared phrase. Obviously this can potentially result to inaccuracies; for instance, two phrases may be semantically close but not be annotated as such, or their paraphrases may in turn be paraphrastic with one another (i.e. transitivity of the paraphrase relation). Measures may be taken towards alleviating the last issue, but in general the quality criterion for negative samples is not of extreme importance.
+
+\paragraph{Curriculum Learning} The ratio of negative samples against positive samples plays an important role in the end results. Especially prominent when using mean square error as the loss function, the network tends to aggressively fit any over-represented class in the training set. This can be negated by dynamically adapting the ratio throughout training. We may start with a class-balanced dataset, which allows the network to learn the majority of the positive examples. Then upon convergence, the percentage of negative examples can be increased by a small amount. Iteratively repeating the above steps significantly increases peak performance metrics.
+
+\section{Training \& Evaluation}
+Figures \ref{fig:plain_tc} through \ref{fig:composed_tc} show the training curves of the networks. It is obvious that the teacher network is much easier to train than the student network, which in turn is positively affected by the additional supervision. The performance metrics of the teacher network and the (supervised) student can be seen in Table \ref{table:CM}. 
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{plain_hist.png}
+\caption{\textit{Independent training of the student network with no additional supervision. Even though it appears to be learning fast during the first few epochs, its accuracy (orange line) quickly starts decreasing as it shown more samples. Notice the perturbations in the loss function (blue line), indicators of the noisy nature of the optimization landscape.}}
+\label{fig:plain_tc}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{oracle_hist.png}
+\caption{\textit{Training of the teacher network. Both loss and accuracy improve smoothly over time until convergence.}}
+\label{fig:teacher_tc}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{join_hist.png}
+\caption{\textit{Training of the student network under the teacher's supervision. Perturbations are still present, but are far less severe. Accuracy no longer diverges, and actually surpasses the percentage of agreement between teacher and student (green line).}}
+\label{fig:composed_tc}
+\end{figure}
+
+Task-specific metrics give us an overview of the small-scale structure of the learned space, i.e. the pair-wise distances between vectors inhabiting this space.
+ 
+\begin{table}
+\centering
+\begin{tabular}{cSS} \toprule
+    {\diagbox{\scriptsize Metric}{\scriptsize Network}} & 
+    {$\text{Teacher}$} & 
+    {$\text{Student}$}\\
+    \midrule
+    ACC & {0.98} & {0.94}\\
+    TPR & {0.99}  & {0.89} \\
+    TNR  & {0.98} & {1} \\
+   \bottomrule
+\end{tabular}
+\caption{\textit{Performance metrics of the teacher and supervised student networks. Accuracy is measured at a class-balanced setting. TPR and TNR refer to the percentage of positive and negative samples correctly identified, respectively.}}
+\label{table:CM}
+\end{table}
 
 
-
+\begin{figure}
+\centering
+\includegraphics[scale=0.15]{phrasal_embeddings.png}
+\caption{\textit{Phrasal embeddings as produced by the supervised student, visualized with 3-dimensional tSNE. The embeddings uniformly occupy a spherical volume, which is the most volume-efficient 3d shape.}}
+\label{fig:phrasal}
+\end{figure}
+ 
 \bibliographystyle{chicago} % or any other style
 \bibliography{mybib}
 
